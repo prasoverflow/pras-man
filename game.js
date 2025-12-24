@@ -21,7 +21,7 @@ const HALF_TILE = TILE_SIZE / 2;
 const GAME_WIDTH = COLS * TILE_SIZE;
 const GAME_HEIGHT = ROWS * TILE_SIZE;
 
-const PROTESTER_SPEED = 1.0;
+const PROTESTER_SPEED = 2.0;
 
 const COLORS = ["#3498db", "#e74c3c", "#2ecc71", "#f1c40f", "#9b59b6", "#e67e22"];
 const POSTER_TEXTS = ["ДОЛУ!", "КОГАТО ПА", "ОСТАВКА", "ПЪТЕКИТЕ"];
@@ -78,7 +78,7 @@ const villain = {
   y: 7 * TILE_SIZE + HALF_TILE,
   vx: 0,
   vy: 0,
-  speed: 0.9,
+  speed: 1.8,
   radius: 12,
   requestDir: "",
 };
