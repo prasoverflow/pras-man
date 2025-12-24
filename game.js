@@ -386,18 +386,15 @@ function drawProtester(p, now) {
   ctx.fillStyle = p.color;
   ctx.lineWidth = 3;
 
-  // Главата
   ctx.beginPath();
   ctx.arc(0, -10, 5, 0, Math.PI * 2);
   ctx.fill();
 
-  // Тялото
   ctx.beginPath();
   ctx.moveTo(0, -4);
   ctx.lineTo(0, 8);
   ctx.stroke();
 
-  // Краката
   ctx.beginPath();
   ctx.moveTo(0, 8);
   ctx.lineTo(-4 + legs / 2, 18);
@@ -405,9 +402,7 @@ function drawProtester(p, now) {
   ctx.lineTo(4 - legs / 2, 18);
   ctx.stroke();
 
-  // Ръце / Плакати
   if (p.type === "poster") {
-    // Рисуване на плакат (както досега)
     ctx.strokeStyle = "#ddd";
     ctx.beginPath();
     ctx.moveTo(0, 0);
@@ -436,35 +431,31 @@ function drawProtester(p, now) {
       ctx.fillText(line, 0, -30 + 8 + (i * 10) - (lines.length - 1) * 5);
     });
   } else if (p.type === "hands") {
-    // НОВО: Вдигнати ръце за протестиращите без плакати
-    const wave = Math.sin(now * 0.02 + p.seed * 5) * 5; // Махане с ръце
+    const wave = Math.sin(now * 0.02 + p.seed * 5) * 5; 
     
     ctx.beginPath();
-    // Лява ръка
     ctx.moveTo(0, -2);
     ctx.lineTo(-8 + wave, -15);
-    // Дясна ръка
     ctx.moveTo(0, -2);
     ctx.lineTo(8 + wave, -15);
     ctx.stroke();
   }
 
-  // Облачета с фрази (остават същите)
-  if (Math.sin(now * 0.001 + p.seed * 100) > 0.6) {
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    const sx = offsetX + (p.x + HALF_TILE) * scale;
-    const sy = offsetY + (p.y - 10) * scale;
-    ctx.fillStyle = "white";
-    ctx.strokeStyle = "black";
-    ctx.lineWidth = 2;
-    ctx.font = "bold 14px Arial";
-    ctx.textAlign = "center";
-    const phrase = PROTEST_PHRASES[Math.floor(p.seed * PROTEST_PHRASES.length)];
-    ctx.strokeText(phrase, sx, sy);
-    ctx.fillText(phrase, sx, sy);
-    ctx.restore();
-  }
+  // if (Math.sin(now * 0.001 + p.seed * 100) > 0.6) {
+  //   ctx.save();
+  //   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  //   const sx = offsetX + (p.x + HALF_TILE) * scale;
+  //   const sy = offsetY + (p.y - 10) * scale;
+  //   ctx.fillStyle = "white";
+  //   ctx.strokeStyle = "black";
+  //   ctx.lineWidth = 2;
+  //   ctx.font = "bold 14px Arial";
+  //   ctx.textAlign = "center";
+  //   const phrase = PROTEST_PHRASES[Math.floor(p.seed * PROTEST_PHRASES.length)];
+  //   ctx.strokeText(phrase, sx, sy);
+  //   ctx.fillText(phrase, sx, sy);
+  //   ctx.restore();
+  // }
 
   ctx.restore();
 }
