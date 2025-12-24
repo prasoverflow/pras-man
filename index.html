@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>ПРАС-МАН: Голямото Усвояване</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    #ui {
+      position: absolute;
+      top: env(safe-area-inset-top, 10px);
+      left: 10px;
+      color: white;
+      font-size: 20px;
+      pointer-events: none;
+      z-index: 10;
+      text-shadow: 2px 2px 2px black;
+    }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <div id="ui">Усвоени средства: <span id="score">0 €</span></div>
+  <canvas id="gameCanvas"></canvas>
+  <script src="game.js"></script>
+</body>
+</html>
