@@ -22,18 +22,52 @@ const GAME_WIDTH = COLS * TILE_SIZE;
 const GAME_HEIGHT = ROWS * TILE_SIZE;
 
 const PROTESTER_SPEED = 120;
+const villain = {
+    x: 9 * TILE_SIZE + HALF_TILE,
+    y: 7 * TILE_SIZE + HALF_TILE,
+    vx: 0,
+    vy: 0,
+    speed: 108,
+    radius: 12,
+    requestDir: "",
+};
+
 
 const COLORS = ["#3498db", "#e74c3c", "#2ecc71", "#f1c40f", "#9b59b6", "#e67e22"];
 const POSTER_TEXTS = ["ДОЛУ!", "КОГАТО ПА", "ОСТАВКА", "ПЪТЕКИТЕ"];
 const PROTEST_PHRASES = ["ОСТАВКА!", "КОГАТО ПА...", "МАФИЯ!", "САРАФОВ, ПЪТЕКИТЕ!", "ДОЛУ КОРУПЦИЯТА!", "ОСТАВКА И ЗАТВОР"];
-const BASE_PROTESTER_SPEED = 120; // Начална скорост
-const BASE_VILLAIN_SPEED = 140;   // Начална скорост на Прас-ман
-const DIFFICULTY_RAMP = 0.05;    // Колко бързо се вдига трудността (5% на всеки 1000 €)
-
-// Тази функция ще изчислява текущия множител на скоростта
+const BASE_PROTESTER_SPEED = 120; 
+const BASE_VILLAIN_SPEED = 140;  
+const DIFFICULTY_RAMP = 0.05;   
 const getDifficultyMultiplier = () => {
     return 1 + (score / 1000) * DIFFICULTY_RAMP;
 };
+
+const map = [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1],
+    [1,2,1,1,2,1,1,1,2,1,2,1,1,1,2,1,1,2,1],
+    [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+    [1,2,1,1,2,1,2,1,1,1,1,1,2,1,2,1,1,2,1],
+    [1,2,2,2,2,1,2,2,2,1,2,2,2,1,2,2,2,2,1],
+    [1,1,1,1,2,1,1,1,0,1,0,1,1,1,2,1,1,1,1],
+    [1,2,2,2,2,1,0,0,0,0,0,0,0,1,2,2,2,2,1],
+    [1,1,1,1,2,1,0,1,1,0,1,1,0,1,2,1,1,1,1],
+    [1,2,2,2,2,2,0,1,0,0,0,1,0,2,2,2,2,2,1],
+    [1,1,1,1,2,1,0,1,1,1,1,1,0,1,2,1,1,1,1],
+    [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+];
+
+const protesters = [
+    { x: TILE_SIZE, y: TILE_SIZE, vx: PROTESTER_SPEED, vy: 0, color: COLORS[0], type: "poster", seed: Math.random(), posterText: "" },
+    { x: (COLS - 2) * TILE_SIZE, y: TILE_SIZE, vx: -PROTESTER_SPEED, vy: 0, color: COLORS[1], type: "hands", seed: Math.random(), posterText: "" },
+    { x: TILE_SIZE, y: (ROWS - 2) * TILE_SIZE, vx: PROTESTER_SPEED, vy: 0, color: COLORS[2], type: "poster", seed: Math.random(), posterText: "" },
+];
+
+protesters.forEach((p) => {
+    p.posterText = POSTER_TEXTS[Math.floor(Math.random() * POSTER_TEXTS.length)];
+});
 
 let score = 0;
 
@@ -47,22 +81,6 @@ let animationId = 0;
 let lastSpawnScore = 0;
 let lastTimestamp = 0;
 
-const map = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1],
-  [1,2,1,1,2,1,1,1,2,1,2,1,1,1,2,1,1,2,1],
-  [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-  [1,2,1,1,2,1,2,1,1,1,1,1,2,1,2,1,1,2,1],
-  [1,2,2,2,2,1,2,2,2,1,2,2,2,1,2,2,2,2,1],
-  [1,1,1,1,2,1,1,1,0,1,0,1,1,1,2,1,1,1,1],
-  [1,2,2,2,2,1,0,0,0,0,0,0,0,1,2,2,2,2,1],
-  [1,1,1,1,2,1,0,1,1,0,1,1,0,1,2,1,1,1,1],
-  [1,2,2,2,2,2,0,1,0,0,0,1,0,2,2,2,2,2,1],
-  [1,1,1,1,2,1,0,1,1,1,1,1,0,1,2,1,1,1,1],
-  [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-];
-
 let remainingMoney = 0;
 for (let r = 0; r < ROWS; r++) {
   for (let c = 0; c < COLS; c++) {
@@ -71,26 +89,6 @@ for (let r = 0; r < ROWS; r++) {
     }
   }
 }
-
-const protesters = [
-  { x: TILE_SIZE, y: TILE_SIZE, vx: PROTESTER_SPEED, vy: 0, color: COLORS[0], type: "poster", seed: Math.random(), posterText: "" },
-  { x: (COLS - 2) * TILE_SIZE, y: TILE_SIZE, vx: -PROTESTER_SPEED, vy: 0, color: COLORS[1], type: "hands", seed: Math.random(), posterText: "" },
-  { x: TILE_SIZE, y: (ROWS - 2) * TILE_SIZE, vx: PROTESTER_SPEED, vy: 0, color: COLORS[2], type: "poster", seed: Math.random(), posterText: "" },
-];
-
-protesters.forEach((p) => {
-  p.posterText = POSTER_TEXTS[Math.floor(Math.random() * POSTER_TEXTS.length)];
-});
-
-const villain = {
-  x: 9 * TILE_SIZE + HALF_TILE,
-  y: 7 * TILE_SIZE + HALF_TILE,
-  vx: 0,
-  vy: 0,
-    speed: 108,
-  radius: 12,
-  requestDir: "",
-};
 
 function startGame() {
   if (!gameStarted) {
@@ -101,10 +99,8 @@ function startGame() {
 const endGame = () => {
     if (!isGameOver) {
         isGameOver = true;
-        // Спираме анимацията веднага
         cancelAnimationFrame(animationId);
 
-        // Пренасочване или рестарт след 3 секунди
         window.setTimeout(() => {
             window.location.reload();
         }, 3000);
@@ -192,7 +188,7 @@ function handleVillainMovement(dt) {
         const centerX = Math.floor(villain.x / TILE_SIZE) * TILE_SIZE + HALF_TILE;
         const centerY = Math.floor(villain.y / TILE_SIZE) * TILE_SIZE + HALF_TILE;
 
-        const lookAhead = dt * 2; // Малък поглед напред за плавно завиване
+        const lookAhead = dt * 2; 
         const checkX = villain.x + nvx * lookAhead;
         const checkY = villain.y + nvy * lookAhead;
 
@@ -232,10 +228,7 @@ function moveProtesters(dt) {
     }
 
     const currentProtesterSpeed = BASE_PROTESTER_SPEED * getDifficultyMultiplier();
-
     protesters.forEach((p) => {
-        // Коригираме текущата скорост на протестиращия спрямо трудността
-        // Поддържаме посоката (вектора), но променяме силата му
         if (p.vx !== 0) { p.vx = p.vx > 0 ? currentProtesterSpeed : -currentProtesterSpeed; }
         if (p.vy !== 0) { p.vy = p.vy > 0 ? currentProtesterSpeed : -currentProtesterSpeed; }
 
@@ -308,7 +301,6 @@ function collectMoneyIfAny() {
       score += 100;
       scoreElement.innerText = `${score} €`;
 
-      // НОВО: На всеки 2000 € добавяме нов протестиращ
       if (score - lastSpawnScore >= 2000) {
         spawnExtraProtester();
         lastSpawnScore = score;
@@ -326,14 +318,12 @@ function update(timestamp) {
         return;
     }
 
-    // Изчисляваме deltaTime в секунди
     if (!lastTimestamp) {
         lastTimestamp = timestamp;
     }
     const dt = (timestamp - lastTimestamp) / 1000;
     lastTimestamp = timestamp;
 
-    // Предпазваме се от огромни скокове (например ако потребителят смени таба)
     const cappedDt = Math.min(dt, 0.1);
 
     handleVillainMovement(cappedDt);
@@ -505,38 +495,41 @@ function drawMoneyBag(x, y) {
 }
 
 function draw(now) {
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = "black"; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scale, scale);
 
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      if (map[r][c] === 1) {
-        ctx.fillStyle = "#111";
-        ctx.fillRect(c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-      } else if (map[r][c] === 2) {
-        drawMoneyBag(c * TILE_SIZE + HALF_TILE, r * TILE_SIZE + HALF_TILE);
-      }
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            if (map[r][c] === 1) {
+                ctx.fillStyle = "#636363";
+                ctx.fillRect(c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            } else {
+                ctx.fillStyle = "#1a1a1a";
+                ctx.fillRect(c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+
+                if (map[r][c] === 2) {
+                    drawMoneyBag(c * TILE_SIZE + HALF_TILE, r * TILE_SIZE + HALF_TILE);
+                }
+            }
+        }
     }
-  }
 
-  protesters.forEach((p) => drawProtester(p, now));
-  drawVillain(now);
-
-    // Вътре в draw(now), след като си нарисувал всичко останало:
+    protesters.forEach((p) => { drawProtester(p, now); });
+    drawVillain(now);
 
     if (isGameOver) {
-        ctx.setTransform(1, 0, 0, 1, 0, 0); // Връщаме се към стандартни пиксели
+        ctx.setTransform(1, 0, 0, 1, 0, 0); 
         ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         const pulse = Math.abs(Math.sin(now * 0.01));
         ctx.fillStyle = `rgb(${150 + Math.floor(pulse * 105)}, 0, 0)`;
         ctx.textAlign = "center";
-        ctx.textBaseline = "middle"; // За по-добро центриране
+        ctx.textBaseline = "middle";
 
         const fs = Math.floor(canvas.width / 12);
         ctx.font = `bold ${fs}px Arial`;
