@@ -536,11 +536,12 @@ function draw(now) {
 
         const fs = Math.floor(canvas.width / 12);
         ctx.font = `bold ${fs}px Arial`;
-        ctx.fillText("ОСТАВКА И ЗАТВОР", canvas.width / 2, canvas.height / 2 - 20);
+        ctx.fillText("ОСТАВКА И ЗАТВОР", canvas.width / 2, canvas.height / 2 - fs / 2); // Малко по-нагоре
+
 
         ctx.font = "bold 24px Arial";
         ctx.fillStyle = "white";
-        ctx.fillText(`Накраде за последно: ${score} €`, canvas.width / 2, canvas.height / 2 + fs);
+        ctx.fillText(`Накраде за последно: ${score} €`, canvas.width / 2, canvas.height / 2 + fs / 2);
     }
 
     if (!gameStarted && !isGameOver) {
