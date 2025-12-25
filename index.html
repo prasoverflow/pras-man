@@ -40,27 +40,37 @@
       text-shadow: 2px 2px 2px black;
     }
     canvas { display: block; }
+    #shareMenu {
+      display: none;
+      position: absolute;
+      bottom: 5%; 
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      text-align: center;
+      z-index: 10;
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    .share-buttons {
+      display: flex;
+      flex-wrap: wrap; 
+      justify-content: center;
+      gap: 8px;
+    }
+
     #shareMenu button {
-        background: #e74c3c; 
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        margin: 5px;
-        border-radius: 4px;
-        font-weight: bold;
-        cursor: pointer;
-        font-family: Arial, sans-serif;
-        transition: background 0.2s;
-    }
-
-    #shareMenu button:hover {
-        background: #c0392b;
-    }
-
-    #shareMenu p {
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 10px 12px;
+      border-radius: 5px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      flex: 1 1 auto;
+      min-width: 60px;
     }
   </style>
 </head>
