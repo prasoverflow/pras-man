@@ -4,6 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>ПРАС-МАН: Голямото Усвояване</title>
+  <meta name="title" content="ПРАС-МАН: Голямото Усвояване">
+  <meta name="description" content="Колко евро можеш да откраднеш, преди народът да те свали? Играй ПРАС-МАН и сподели резултата си.">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://prasoverflow.github.io/pras-man/">
+  <meta property="og:title" content="ПРАС-МАН: Голямото Усвояване">
+  <meta property="og:description" content="Колко евро можеш да откраднеш, преди народът да те свали?">
+  <meta property="og:image" content="https://prasoverflow.github.io/pras-man/pras-man.png">
+
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://prasoverflow.github.io/pras-man/">
+  <meta property="twitter:title" content="ПРАС-МАН: Голямото Усвояване">
+  <meta property="twitter:description" content="Колко евро можеш да откраднеш, преди народът да те свали?">
+  <meta property="twitter:image" content="https://prasoverflow.github.io/pras-man/pras-man.png">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
   <style>
     body {
       margin: 0;
@@ -25,13 +40,44 @@
       text-shadow: 2px 2px 2px black;
     }
     canvas { display: block; }
+    #shareMenu button {
+        background: #e74c3c; 
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        margin: 5px;
+        border-radius: 4px;
+        font-weight: bold;
+        cursor: pointer;
+        font-family: Arial, sans-serif;
+        transition: background 0.2s;
+    }
+
+    #shareMenu button:hover {
+        background: #c0392b;
+    }
+
+    #shareMenu p {
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
   </style>
 </head>
 <body>
   <div id="ui">Усвоени средства: <span id="score">0 €</span></div>
   <canvas id="gameCanvas"></canvas>
+  <div id="shareMenu" style="display: none; position: absolute; top: 70%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
+      <p style="color: white; font-family: Arial; margin-bottom: 10px;">СПОДЕЛИ:</p>
+      <div class="share-buttons">
+          <button onclick="share('fb')" title="Facebook">FB</button>
+          <button onclick="share('x')" title="X (Twitter)">X</button>
+          <button onclick="share('bsky')" title="BlueSky">BSky</button>
+          <button onclick="share('email')" title="Email">✉️</button>
+          <button onclick="copyLink()" title="Линк за TikTok/Telegram">🔗</button>
+      </div>
+  </div>
   <script src="game.js"></script>
-  <script data-goatcounter="https://prasoverflow.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
