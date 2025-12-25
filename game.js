@@ -36,9 +36,9 @@ const villain = {
 const COLORS = ["#3498db", "#e74c3c", "#2ecc71", "#f1c40f", "#9b59b6", "#e67e22"];
 const POSTER_TEXTS = ["ДОЛУ!", "КОГАТО ПА", "ОСТАВКА", "ПЪТЕКИТЕ"];
 const PROTEST_PHRASES = ["ОСТАВКА!", "КОГАТО ПА...", "МАФИЯ!", "САРАФОВ, ПЪТЕКИТЕ!", "ДОЛУ КОРУПЦИЯТА!", "ОСТАВКА И ЗАТВОР"];
-const BASE_PROTESTER_SPEED = 120; 
-const BASE_VILLAIN_SPEED = 140;  
-const DIFFICULTY_RAMP = 0.05;   
+const BASE_PROTESTER_SPEED = 120;
+const BASE_VILLAIN_SPEED = 140;
+const DIFFICULTY_RAMP = 0.05;
 const getDifficultyMultiplier = () => {
     return 1 + (score / 1000) * DIFFICULTY_RAMP;
 };
@@ -96,16 +96,19 @@ function startGame() {
   }
 }
 
-const endGame = () => {
+function endGame() {
     if (!isGameOver) {
         isGameOver = true;
         cancelAnimationFrame(animationId);
 
-        window.setTimeout(() => {
-            window.location.reload();
-        }, 3000);
+        const menu = document.getElementById("shareMenu");
+        if (menu) {
+            menu.style.display = "block";
+        }
+
+        window.setTimeout(() => window.location.reload(), 15000);
     }
-};
+}
 
 function resize() {
   canvas.width = window.innerWidth;
@@ -188,7 +191,7 @@ function handleVillainMovement(dt) {
         const centerX = Math.floor(villain.x / TILE_SIZE) * TILE_SIZE + HALF_TILE;
         const centerY = Math.floor(villain.y / TILE_SIZE) * TILE_SIZE + HALF_TILE;
 
-        const lookAhead = dt * 2; 
+        const lookAhead = dt * 2;
         const checkX = villain.x + nvx * lookAhead;
         const checkY = villain.y + nvy * lookAhead;
 
@@ -496,7 +499,7 @@ function drawMoneyBag(x, y) {
 
 function draw(now) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = "black"; 
+    ctx.fillStyle = "black";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.translate(offsetX, offsetY);
@@ -522,7 +525,7 @@ function draw(now) {
     drawVillain(now);
 
     if (isGameOver) {
-        ctx.setTransform(1, 0, 0, 1, 0, 0); 
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
