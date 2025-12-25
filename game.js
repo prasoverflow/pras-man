@@ -21,11 +21,19 @@ const HALF_TILE = TILE_SIZE / 2;
 const GAME_WIDTH = COLS * TILE_SIZE;
 const GAME_HEIGHT = ROWS * TILE_SIZE;
 
-const PROTESTER_SPEED = 2.0;
+const PROTESTER_SPEED = 120;
 
 const COLORS = ["#3498db", "#e74c3c", "#2ecc71", "#f1c40f", "#9b59b6", "#e67e22"];
 const POSTER_TEXTS = ["ДОЛУ!", "КОГАТО ПА", "ОСТАВКА", "ПЪТЕКИТЕ"];
 const PROTEST_PHRASES = ["ОСТАВКА!", "КОГАТО ПА...", "МАФИЯ!", "САРАФОВ, ПЪТЕКИТЕ!", "ДОЛУ КОРУПЦИЯТА!", "ОСТАВКА И ЗАТВОР"];
+const BASE_PROTESTER_SPEED = 120; // Начална скорост
+const BASE_VILLAIN_SPEED = 140;   // Начална скорост на Прас-ман
+const DIFFICULTY_RAMP = 0.05;    // Колко бързо се вдига трудността (5% на всеки 1000 €)
+
+// Тази функция ще изчислява текущия множител на скоростта
+const getDifficultyMultiplier = () => {
+    return 1 + (score / 1000) * DIFFICULTY_RAMP;
+};
 
 let score = 0;
 
@@ -37,6 +45,7 @@ let gameStarted = false;
 let isGameOver = false;
 let animationId = 0;
 let lastSpawnScore = 0;
+let lastTimestamp = 0;
 
 const map = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
@@ -78,7 +87,7 @@ const villain = {
   y: 7 * TILE_SIZE + HALF_TILE,
   vx: 0,
   vy: 0,
-  speed: 1.8,
+    speed: 108,
   radius: 12,
   requestDir: "",
 };
@@ -88,6 +97,19 @@ function startGame() {
     gameStarted = true;
   }
 }
+
+const endGame = () => {
+    if (!isGameOver) {
+        isGameOver = true;
+        // Спираме анимацията веднага
+        cancelAnimationFrame(animationId);
+
+        // Пренасочване или рестарт след 3 секунди
+        window.setTimeout(() => {
+            window.location.reload();
+        }, 3000);
+    }
+};
 
 function resize() {
   canvas.width = window.innerWidth;
@@ -154,51 +176,45 @@ function snapVillainToTileCenter() {
   villain.y = Math.round((villain.y - HALF_TILE) / TILE_SIZE) * TILE_SIZE + HALF_TILE;
 }
 
-function handleVillainMovement() {
-  if (villain.requestDir !== "") {
-    let nvx = 0;
-    let nvy = 0;
 
-    if (villain.requestDir === "up") {
-      nvy = -villain.speed;
-    } else if (villain.requestDir === "down") {
-      nvy = villain.speed;
-    } else if (villain.requestDir === "left") {
-      nvx = -villain.speed;
-    } else if (villain.requestDir === "right") {
-      nvx = villain.speed;
+function handleVillainMovement(dt) {
+    const currentSpeed = BASE_VILLAIN_SPEED * getDifficultyMultiplier();
+
+    if (villain.requestDir !== "") {
+        let nvx = 0;
+        let nvy = 0;
+
+        if (villain.requestDir === "up") { nvy = -currentSpeed; }
+        else if (villain.requestDir === "down") { nvy = currentSpeed; }
+        else if (villain.requestDir === "left") { nvx = -currentSpeed; }
+        else if (villain.requestDir === "right") { nvx = currentSpeed; }
+
+        const centerX = Math.floor(villain.x / TILE_SIZE) * TILE_SIZE + HALF_TILE;
+        const centerY = Math.floor(villain.y / TILE_SIZE) * TILE_SIZE + HALF_TILE;
+
+        const lookAhead = dt * 2; // Малък поглед напред за плавно завиване
+        const checkX = villain.x + nvx * lookAhead;
+        const checkY = villain.y + nvy * lookAhead;
+
+        if (canVillainMoveTo(checkX, checkY)) {
+            if (nvy !== 0) { villain.x = centerX; }
+            if (nvx !== 0) { villain.y = centerY; }
+            villain.vx = nvx;
+            villain.vy = nvy;
+        }
     }
 
-    const centerX = Math.floor(villain.x / TILE_SIZE) * TILE_SIZE + HALF_TILE;
-    const centerY = Math.floor(villain.y / TILE_SIZE) * TILE_SIZE + HALF_TILE;
+    const nx = villain.x + villain.vx * dt;
+    const ny = villain.y + villain.vy * dt;
 
-    const lookAhead = 10;
-    const checkX = villain.x + nvx * lookAhead;
-    const checkY = villain.y + nvy * lookAhead;
-
-    if (canVillainMoveTo(checkX, checkY)) {
-      if (nvy !== 0) {
-        villain.x = centerX;
-      }
-      if (nvx !== 0) {
-        villain.y = centerY;
-      }
-      villain.vx = nvx;
-      villain.vy = nvy;
+    if (canVillainMoveTo(nx, ny)) {
+        villain.x = nx;
+        villain.y = ny;
+    } else {
+        villain.vx = 0;
+        villain.vy = 0;
+        snapVillainToTileCenter();
     }
-  }
-
-  const nx = villain.x + villain.vx;
-  const ny = villain.y + villain.vy;
-
-  if (canVillainMoveTo(nx, ny)) {
-    villain.x = nx;
-    villain.y = ny;
-  } else {
-    villain.vx = 0;
-    villain.vy = 0;
-    snapVillainToTileCenter();
-  }
 }
 
 function isProtesterBlocked(nx, ny) {
@@ -210,71 +226,75 @@ function isProtesterBlocked(nx, ny) {
   return false;
 }
 
-function moveProtesters() {
-  if (isGameOver || !gameStarted) {
-    return;
-  }
+function moveProtesters(dt) {
+    if (isGameOver || !gameStarted) {
+        return;
+    }
 
-  protesters.forEach((p) => {
-    const nearCenterX = Math.abs((p.x % TILE_SIZE)) < 2 || Math.abs((p.x % TILE_SIZE) - TILE_SIZE) < 2;
-    const nearCenterY = Math.abs((p.y % TILE_SIZE)) < 2 || Math.abs((p.y % TILE_SIZE) - TILE_SIZE) < 2;
-    const isAtCenter = nearCenterX && nearCenterY;
+    const currentProtesterSpeed = BASE_PROTESTER_SPEED * getDifficultyMultiplier();
 
-    if (isAtCenter) {
-      const possibleDirs = [];
-      const dirs = [
-        { dx: PROTESTER_SPEED, dy: 0 },
-        { dx: -PROTESTER_SPEED, dy: 0 },
-        { dx: 0, dy: PROTESTER_SPEED },
-        { dx: 0, dy: -PROTESTER_SPEED },
-      ];
+    protesters.forEach((p) => {
+        // Коригираме текущата скорост на протестиращия спрямо трудността
+        // Поддържаме посоката (вектора), но променяме силата му
+        if (p.vx !== 0) { p.vx = p.vx > 0 ? currentProtesterSpeed : -currentProtesterSpeed; }
+        if (p.vy !== 0) { p.vy = p.vy > 0 ? currentProtesterSpeed : -currentProtesterSpeed; }
 
-      dirs.forEach((d) => {
-        const stepX = d.dx > 0 ? TILE_SIZE : (d.dx < 0 ? -TILE_SIZE : 0);
-        const stepY = d.dy > 0 ? TILE_SIZE : (d.dy < 0 ? -TILE_SIZE : 0);
+        const nearCenterX = Math.abs((p.x % TILE_SIZE)) < 4 || Math.abs((p.x % TILE_SIZE) - TILE_SIZE) < 4;
+        const nearCenterY = Math.abs((p.y % TILE_SIZE)) < 4 || Math.abs((p.y % TILE_SIZE) - TILE_SIZE) < 4;
+        const isAtCenter = nearCenterX && nearCenterY;
 
-        const cx = p.x + stepX;
-        const cy = p.y + stepY;
+        if (isAtCenter) {
+            const possibleDirs = [];
+            const dirs = [
+                { dx: currentProtesterSpeed, dy: 0 },
+                { dx: -currentProtesterSpeed, dy: 0 },
+                { dx: 0, dy: currentProtesterSpeed },
+                { dx: 0, dy: -currentProtesterSpeed },
+            ];
 
-        if (!isWall(cx, cy)) {
-          const isReverse = (d.dx === -p.vx && d.dy === -p.vy);
-          if (!isReverse) {
-            possibleDirs.push(d);
-          }
+            dirs.forEach((d) => {
+                const stepX = d.dx > 0 ? TILE_SIZE : (d.dx < 0 ? -TILE_SIZE : 0);
+                const stepY = d.dy > 0 ? TILE_SIZE : (d.dy < 0 ? -TILE_SIZE : 0);
+                if (!isWall(p.x + stepX, p.y + stepY)) {
+                    if (!(d.dx === -p.vx && d.dy === -p.vy)) {
+                        possibleDirs.push(d);
+                    }
+                }
+            });
+
+            if (possibleDirs.length > 0 && Math.random() < 0.3) {
+                const choice = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
+                p.x = Math.round(p.x / TILE_SIZE) * TILE_SIZE;
+                p.y = Math.round(p.y / TILE_SIZE) * TILE_SIZE;
+                p.vx = choice.dx;
+                p.vy = choice.dy;
+            }
         }
-      });
 
-      if (possibleDirs.length > 0 && Math.random() < 0.3) {
-        const choice = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
-        p.vx = choice.dx;
-        p.vy = choice.dy;
-      }
-    }
+        const nx = p.x + p.vx * dt;
+        const ny = p.y + p.vy * dt;
 
-    const nx = p.x + p.vx;
-    const ny = p.y + p.vy;
+        if (!isProtesterBlocked(nx, ny)) {
+            p.x = nx;
+            p.y = ny;
+        } else {
+            const forced = [
+                [currentProtesterSpeed, 0],
+                [-currentProtesterSpeed, 0],
+                [0, currentProtesterSpeed],
+                [0, -currentProtesterSpeed],
+            ];
+            const d = forced[Math.floor(Math.random() * forced.length)];
+            p.x = Math.round(p.x / TILE_SIZE) * TILE_SIZE;
+            p.y = Math.round(p.y / TILE_SIZE) * TILE_SIZE;
+            p.vx = d[0];
+            p.vy = d[1];
+        }
 
-    if (!isProtesterBlocked(nx, ny)) {
-      p.x = nx;
-      p.y = ny;
-    } else {
-      const forced = [
-        [PROTESTER_SPEED, 0],
-        [-PROTESTER_SPEED, 0],
-        [0, PROTESTER_SPEED],
-        [0, -PROTESTER_SPEED],
-      ];
-      const d = forced[Math.floor(Math.random() * forced.length)];
-      p.vx = d[0];
-      p.vy = d[1];
-    }
-
-    const px = p.x + HALF_TILE;
-    const py = p.y + HALF_TILE;
-    if (Math.hypot(px - villain.x, py - villain.y) < (villain.radius + 13)) {
-      endGame();
-    }
-  });
+        if (Math.hypot(p.x + HALF_TILE - villain.x, p.y + HALF_TILE - villain.y) < (villain.radius + 13)) {
+            endGame();
+        }
+    });
 }
 
 function collectMoneyIfAny() {
@@ -301,27 +321,28 @@ function collectMoneyIfAny() {
   }
 }
 
-function update() {
-  if (isGameOver) {
-    return;
-  }
+function update(timestamp) {
+    if (isGameOver) {
+        return;
+    }
 
-  handleVillainMovement();
-  collectMoneyIfAny();
-  moveProtesters();
+    // Изчисляваме deltaTime в секунди
+    if (!lastTimestamp) {
+        lastTimestamp = timestamp;
+    }
+    const dt = (timestamp - lastTimestamp) / 1000;
+    lastTimestamp = timestamp;
 
-  const now = Date.now();
-  draw(now);
+    // Предпазваме се от огромни скокове (например ако потребителят смени таба)
+    const cappedDt = Math.min(dt, 0.1);
 
-  animationId = requestAnimationFrame(update);
-}
+    handleVillainMovement(cappedDt);
+    collectMoneyIfAny();
+    moveProtesters(cappedDt);
 
-function endGame() {
-  if (!isGameOver) {
-    isGameOver = true;
-    cancelAnimationFrame(animationId);
-    window.setTimeout(() => window.location.reload(), 3000);
-  }
+    draw(timestamp);
+
+    animationId = requestAnimationFrame(update);
 }
 
 function drawVillain(now) {
@@ -441,21 +462,21 @@ function drawProtester(p, now) {
     ctx.stroke();
   }
 
-  // if (Math.sin(now * 0.001 + p.seed * 100) > 0.6) {
-  //   ctx.save();
-  //   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  //   const sx = offsetX + (p.x + HALF_TILE) * scale;
-  //   const sy = offsetY + (p.y - 10) * scale;
-  //   ctx.fillStyle = "white";
-  //   ctx.strokeStyle = "black";
-  //   ctx.lineWidth = 2;
-  //   ctx.font = "bold 14px Arial";
-  //   ctx.textAlign = "center";
-  //   const phrase = PROTEST_PHRASES[Math.floor(p.seed * PROTEST_PHRASES.length)];
-  //   ctx.strokeText(phrase, sx, sy);
-  //   ctx.fillText(phrase, sx, sy);
-  //   ctx.restore();
-  // }
+  if (Math.sin(now * 0.001 + p.seed * 100) > 0.6) {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const sx = offsetX + (p.x + HALF_TILE) * scale;
+    const sy = offsetY + (p.y - 10) * scale;
+    ctx.fillStyle = "white";
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 2;
+    ctx.font = "bold 14px Arial";
+    ctx.textAlign = "center";
+    const phrase = PROTEST_PHRASES[Math.floor(p.seed * PROTEST_PHRASES.length)];
+    ctx.strokeText(phrase, sx, sy);
+    ctx.fillText(phrase, sx, sy);
+    ctx.restore();
+  }
 
   ctx.restore();
 }
@@ -505,43 +526,48 @@ function draw(now) {
   protesters.forEach((p) => drawProtester(p, now));
   drawVillain(now);
 
-  if (isGameOver) {
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Вътре в draw(now), след като си нарисувал всичко останало:
 
-    const pulse = Math.abs(Math.sin(now * 0.01));
-    ctx.fillStyle = `rgb(${150 + pulse * 105}, 0, 0)`;
-    ctx.textAlign = "center";
+    if (isGameOver) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // Връщаме се към стандартни пиксели
+        ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const fs = Math.floor(canvas.width / 10);
-    ctx.font = `bold ${fs}px Arial`;
-    ctx.fillText("ОСТАВКА И ЗАТВОР", canvas.width / 2, canvas.height / 2);
-    
-    ctx.font = "24px Arial";
-    ctx.fillStyle = "white";
-    ctx.fillText(`Накраде за последно: ${score} €`, canvas.width / 2, canvas.height / 2 + fs);
-  }
+        const pulse = Math.abs(Math.sin(now * 0.01));
+        ctx.fillStyle = `rgb(${150 + Math.floor(pulse * 105)}, 0, 0)`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle"; // За по-добро центриране
 
-  if (!gameStarted && !isGameOver) {
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const fs = Math.floor(canvas.width / 12);
+        ctx.font = `bold ${fs}px Arial`;
+        ctx.fillText("ОСТАВКА И ЗАТВОР", canvas.width / 2, canvas.height / 2 - 20);
 
-    ctx.fillStyle = "white";
-    ctx.textAlign = "center";
-    ctx.font = "bold 60px Arial";
-    ctx.fillText("ПРАС-МАН", canvas.width / 2, canvas.height / 2 - 50);
+        ctx.font = "bold 24px Arial";
+        ctx.fillStyle = "white";
+        ctx.fillText(`Накраде за последно: ${score} €`, canvas.width / 2, canvas.height / 2 + fs);
+    }
 
-    const pPulse = Math.abs(Math.sin(now * 0.005));
-    ctx.font = "bold 30px Arial";
-    ctx.fillStyle = `rgba(255, 255, 255, ${0.3 + pPulse * 0.7})`;
-    ctx.fillText("ДОКОСНИ ЗА КРАЖБА", canvas.width / 2, canvas.height / 2 + 20);
+    if (!gameStarted && !isGameOver) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.font = "16px Arial";
-    ctx.fillStyle = "#aaa";
-    ctx.fillText("Плъзни, за да движиш Прасето", canvas.width / 2, canvas.height / 2 + 60);
-  }
+        ctx.fillStyle = "white";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        ctx.font = "bold 60px Arial";
+        ctx.fillText("ПРАС-МАН", canvas.width / 2, canvas.height / 2 - 60);
+
+        const pPulse = Math.abs(Math.sin(now * 0.005));
+        ctx.font = "bold 30px Arial";
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.3 + pPulse * 0.7})`;
+        ctx.fillText("ДОКОСНИ ЗА КРАЖБА", canvas.width / 2, canvas.height / 2 + 10);
+
+        ctx.font = "18px Arial";
+        ctx.fillStyle = "#ccc";
+        ctx.fillText("Плъзни, за да движиш Прасето", canvas.width / 2, canvas.height / 2 + 70);
+    }
 }
 
 window.addEventListener("keydown", (e) => {
